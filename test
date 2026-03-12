@@ -1,0 +1,9 @@
+function add(x, y) {
+    result = x + y;
+    print(result);
+    b = result;
+};
+
+b = 0;
+add(5, 3);
+print(b);

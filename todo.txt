@@ -1,0 +1,8 @@
+Fix semicolon after conditionnal bloc
+do while
+for
+multi-line input from terminal
+function with return
+simple array
+string
+scope variable (at the moment all variabled are local including functions params)
