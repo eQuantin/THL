@@ -61,7 +61,6 @@ precedence = (
     ),
     ("left", "PLUS", "MINUS"),
     ("left", "TIMES", "DIVIDE"),
-    # ("left", "IMPLICIT_MULT"),
 )
 
 t_PLUS = r"\+"
@@ -343,10 +342,7 @@ def p_statement_func_call(p):
     """statement : VAR LPAREN arg_list RPAREN
     |              VAR LPAREN RPAREN"""
     func_name = p[1]
-    if len(p) == 5:
-        args = p[3]
-    else:
-        args = []
+    args = p[3] if len(p) == 5 else []
     p[0] = ("call_stmt", ("call", func_name, args))
 
 
@@ -449,25 +445,6 @@ def p_expression_binop(p):
             p[0] = ("/", p[1], p[3])
         case _:
             pass
-
-
-# def p_expression_implicit_mult_prec_paren(p):
-#     """expression : NUMBER LPAREN expression RPAREN %prec IMPLICIT_MULT
-#     |               VAR LPAREN expression RPAREN %prec IMPLICIT_MULT
-#     """
-#     p[0] = ("*", p[1], p[3])
-
-
-# def p_expression_implicit_mult_post_paren(p):
-#     """expression : LPAREN expression RPAREN NUMBER %prec IMPLICIT_MULT
-#     |               LPAREN expression RPAREN VAR %prec IMPLICIT_MULT
-#     """
-#     p[0] = ("*", p[2], p[4])
-
-
-# def p_expression_implicit_mult_multi_paren(p):
-#     """expression : LPAREN expression RPAREN LPAREN expression RPAREN %prec IMPLICIT_MULT"""
-#     p[0] = ("*", p[2], p[5])
 
 
 def p_expression_binop_comp(p):
