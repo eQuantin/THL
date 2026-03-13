@@ -1,17 +1,20 @@
 # -*- coding: utf-8 -*-
-'''
+"""
 Author : Vincent Genin ESGI-3AL 2018
-'''
+"""
 
 import uuid
+
 import graphviz as gv
 
+
 def printTreeGraph(t):
-    graph = gv.Digraph(format='pdf')
-    graph.attr('node', shape='circle')
+    graph = gv.Digraph(format="pdf")
+    graph.attr("node", shape="circle")
     addNode(graph, t)
-    #graph.render(filename='img/graph') #Pour Sauvegarder
-    graph.view() #Pour afficher
+    graph.render(filename="img/graph")  # Pour Sauvegarder
+    # graph.view() #Pour afficher
+
 
 def addNode(graph, t):
     myId = uuid.uuid4()
@@ -22,9 +25,6 @@ def addNode(graph, t):
 
     graph.node(str(myId), label=str(t[0]))
     for i in range(1, len(t)):
-         graph.edge(str(myId), str(addNode(graph, t[i])), arrowsize='0')
-
+        graph.edge(str(myId), str(addNode(graph, t[i])), arrowsize="0")
 
     return myId
-    
- 

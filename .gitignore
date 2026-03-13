@@ -2,3 +2,6 @@ __pycache__
 my_venv/
 parser.out
 parsetab.py
+Digraph*
+test
+img/

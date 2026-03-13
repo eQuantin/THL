@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+import genereTreeGraphviz2 as printTreeGraph
+
 reserved = {
     "if": "IF",
     "else": "ELSE",
@@ -536,6 +538,7 @@ if __name__ == "__main__":
                 content = f.read()
                 result = yacc.parse(content)
                 if result:
+                    printTreeGraph.printTreeGraph(result)
                     evalInst(result)
         except FileNotFoundError:
             print(f"Error: File '{filename}' not found")
