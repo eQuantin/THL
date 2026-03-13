@@ -12,6 +12,8 @@ reserved = {
     "function": "FUNCTION",
     "print": "PRINT",
     "return": "RETURN",
+    # "mut": "MUT",
+    # "const": "CONST",
 }
 
 tokens = [
@@ -123,6 +125,11 @@ def t_newline(t):
 def t_error(t):
     print("Illegal character '%s'" % t.value[0])
     t.lexer.skip(1)
+
+
+def t_comment(t):
+    r"//.*?//"
+    pass
 
 
 import ply.lex as lex
