@@ -456,7 +456,7 @@ def p_elif_chain(p):
 
 def p_conditional_if(p):
     """if : IF LPAREN expression RPAREN LCBRACKET bloc RCBRACKET"""
-    p[0] = ("if_part", p[3], p[6])
+    p[0] = ("if", p[3], p[6])
 
 
 def p_conditional_elif(p):
