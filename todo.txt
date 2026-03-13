@@ -1,6 +1,4 @@
 Fix semicolon after conditionnal bloc
-do while
-for
 multi-line input from terminal
 function with return
 simple array

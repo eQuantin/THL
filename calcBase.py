@@ -7,10 +7,11 @@ reserved = {
     "else": "ELSE",
     "elif": "ELIF",
     "while": "WHILE",
-    # "do": "DO",
-    # "for": "FOR",
+    "do": "DO",
+    "for": "FOR",
     "function": "FUNCTION",
     "print": "PRINT",
+    "return": "RETURN",
 }
 
 tokens = [
@@ -301,7 +302,20 @@ def evalInst(t):
             body = t[2]
             while evalExpr(condition):
                 evalInst(body)
-
+        elif t[0] == "for":
+            evalInst(t[1])
+            condition = t[2]
+            expr = t[3]
+            body = t[4]
+            while evalExpr(condition):
+                evalInst(body)
+                evalExpr(expr)
+        elif t[0] == "do_while":
+            condition = t[2]
+            body = t[1]
+            evalInst(body)
+            while evalExpr(condition):
+                evalInst(body)
     elif t == "empty":
         pass
 
@@ -348,8 +362,22 @@ def p_statement_func_call(p):
     p[0] = ("call_stmt", ("call", func_name, args))
 
 
+def p_statement_return(p):
+    """statement : RETURN expression
+    |              RETURN"""
+    if len(p) == 3:
+        p[0] = ("return", p[2])
+    else:
+        p[0] = ("return",)
+
+
 def p_statement_assign(p):
-    "statement : VAR EGAL expression"
+    "statement : assign"
+    p[0] = p[1]
+
+
+def p_assign(p):
+    "assign : VAR EGAL expression"
     p[0] = ("assign", p[1], p[3])
 
 
@@ -377,6 +405,16 @@ def p_statement_if(p):
 def p_statement_while(p):
     """statement : WHILE LPAREN expression RPAREN LCBRACKET bloc RCBRACKET"""
     p[0] = ("while", p[3], p[6])
+
+
+def p_statement_for(p):
+    """statement : FOR LPAREN assign SEMI expression SEMI expression  RPAREN LCBRACKET bloc RCBRACKET"""
+    p[0] = ("for", p[3], p[5], p[7], p[10])
+
+
+def p_statement_do_while(p):
+    """statement : DO LCBRACKET bloc RCBRACKET WHILE LPAREN expression RPAREN"""
+    p[0] = ("do_while", p[3], p[7])
 
 
 def p_param_list(p):
