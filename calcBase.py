@@ -488,10 +488,10 @@ def p_expression_binop_assign(p):
 
 
 def p_expression_incr(p):
-    """expression : INCR expression
-    |               DECR expression
-    |               expression INCR
-    |               expression DECR
+    """expression : VAR INCR
+    |               VAR DECR
+    |               INCR VAR
+    |               DECR VAR
     """
     if p[2] == "++":
         p[0] = ("post_incr", p[1])
