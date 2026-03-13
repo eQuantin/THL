@@ -128,7 +128,7 @@ def t_error(t):
 
 
 def t_comment(t):
-    r"//.*?//"
+    r"(\/\/.*\n+)|(\/*(\*.*\n+)*\*\/)"
     pass
 
 
