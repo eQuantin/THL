@@ -1,0 +1,380 @@
+// ============================================================
+// THL Test Suite
+// Run with: python calcBase.py test.thl
+// Each section prints its name before running.
+// If execution stops, the last printed section is where the error occurred.
+// ============================================================
+
+
+// ------------------------------------------------------------
+// 1. Variable assignment
+// ------------------------------------------------------------
+print("=== 1. Variable assignment ===");
+mut x = 42;
+print("expected: 42"); print(x);
+
+
+// ------------------------------------------------------------
+// 2. Arithmetic
+// ------------------------------------------------------------
+print("=== 2. Arithmetic ===");
+print("expected: 13"); print(10 + 3);
+print("expected: 7");  print(10 - 3);
+print("expected: 30"); print(10 * 3);
+print("expected: 5");  print(10 / 2);
+print("expected: 3");  print(10 / 3);
+
+
+// ------------------------------------------------------------
+// 3. Comparison operators (return True or False)
+// ------------------------------------------------------------
+print("=== 3. Comparisons ===");
+print("expected: True");  print(3 < 5);
+print("expected: True");  print(5 <= 5);
+print("expected: True");  print(7 > 4);
+print("expected: True");  print(4 >= 4);
+print("expected: True");  print(3 == 3);
+print("expected: False"); print(3 == 4);
+
+
+// ------------------------------------------------------------
+// 4. Logical operators (return True or False)
+// ------------------------------------------------------------
+print("=== 4. Logical operators ===");
+print("expected: True");  print(1 && 1);
+print("expected: False"); print(1 && 0);
+print("expected: True");     print(0 || 1);
+print("expected: False");     print(0 || 0);
+
+
+// ------------------------------------------------------------
+// 5. Compound assignments
+// ------------------------------------------------------------
+print("=== 5. Compound assignments ===");
+mut a = 10;
+a += 5;
+print("expected: 15"); print(a);
+
+a -= 3;
+print("expected: 12"); print(a);
+
+a *= 2;
+print("expected: 24"); print(a);
+
+a /= 4;
+print("expected: 6"); print(a);
+
+
+// ------------------------------------------------------------
+// 6. Post-increment and post-decrement
+// ------------------------------------------------------------
+print("=== 6. Post-increment / post-decrement ===");
+mut b = 5;
+b++;
+print("expected: 6"); print(b);
+
+b--;
+print("expected: 5"); print(b);
+
+
+// ------------------------------------------------------------
+// 7. Pre-increment and pre-decrement
+// ------------------------------------------------------------
+print("=== 7. Pre-increment / pre-decrement ===");
+mut c = 10;
+++c;
+print("expected: 11"); print(c);
+
+--c;
+print("expected: 10"); print(c);
+
+
+// ------------------------------------------------------------
+// 8. If / elif / else
+// ------------------------------------------------------------
+print("=== 8. If / elif / else ===");
+mut n = 3;
+
+print("expected: 3");
+if (n == 1) {
+    print(1);
+} elif (n == 2) {
+    print(2);
+} elif (n == 3) {
+    print(3);
+} else {
+    print(0);
+};
+
+print("expected: 0");
+if (n > 100) {
+    print(999);
+} else {
+    print(0);
+};
+
+
+// ------------------------------------------------------------
+// 9. While loop
+// ------------------------------------------------------------
+print("=== 9. While loop ===");
+mut i = 0;
+while (i < 5) {
+    i++;
+};
+print("expected: 5"); print(i);
+
+
+// ------------------------------------------------------------
+// 10. Do-while loop
+// ------------------------------------------------------------
+print("=== 10. Do-while loop ===");
+mut j = 0;
+do {
+    j++;
+} while (j < 3);
+print("expected: 3"); print(j);
+
+mut k = 99;
+do {
+    k++;
+} while (k < 0);
+print("expected: 100"); print(k);
+
+
+// ------------------------------------------------------------
+// 11. For loop
+// ------------------------------------------------------------
+print("=== 11. For loop ===");
+mut sum = 0;
+for (mut m = 1; m <= 5; m++) {
+    sum += m;
+};
+print("expected: 15"); print(sum);
+
+
+// ------------------------------------------------------------
+// 12. Function — no parameters
+// ------------------------------------------------------------
+print("=== 12. Function (no params) ===");
+function greet() {
+    print(42);
+};
+print("expected: 42"); greet();
+
+
+// ------------------------------------------------------------
+// 13. Function — with parameters
+// ------------------------------------------------------------
+print("=== 13. Function (with params) ===");
+function add(a, b) {
+    return a + b;
+};
+print("expected: 7");  print(add(3, 4));
+print("expected: 30"); print(add(10, 20));
+
+
+// ------------------------------------------------------------
+// 14. Function — return value used in expression
+// ------------------------------------------------------------
+print("=== 14. Function (return value) ===");
+function double(x) {
+    return x * 2;
+};
+mut r = double(6);
+print("expected: 12"); print(r);
+
+
+// ------------------------------------------------------------
+// 15. Variable scoping
+// ------------------------------------------------------------
+print("=== 15. Variable scoping ===");
+
+// 15a. Function modifies a global
+mut g = 100;
+function setG() {
+    g = 999;
+};
+setG();
+print("expected: 999"); print(g);
+
+// 15b. Function parameter with the same name as a global does NOT modify the global
+mut counter = 10;
+function resetCounter(counter) {
+    counter = 0;
+};
+resetCounter(counter);
+print("expected: 10"); print(counter);
+
+// 15c. Function can read a global
+mut base = 5;
+function addToBase(n) {
+    return base + n;
+};
+print("expected: 8"); print(addToBase(3));
+
+// 15d. Nested calls share global scope
+mut shared = 0;
+function inc() {
+    shared += 1;
+};
+function incTwice() {
+    inc();
+    inc();
+};
+incTwice();
+print("expected: 2"); print(shared);
+
+// 15e. Function sees global variables updated after it was defined
+mut laterVar = 0;
+function readLater() {
+    return laterVar;
+};
+laterVar = 42;
+print("expected: 42"); print(readLater());
+
+
+// ------------------------------------------------------------
+// 16. Comments
+// ------------------------------------------------------------
+print("=== 16. Comments ===");
+// this is a comment
+/*
+   This is a multi-line comment.
+   It should be completely ignored by the lexer.
+*/
+
+print("expected: 42"); print(x);
+
+
+// ------------------------------------------------------------
+// 17. Boolean literals
+// ------------------------------------------------------------
+print("=== 17. Boolean literals ===");
+print("expected: True");  print(True);
+print("expected: False"); print(False);
+
+print("expected: 1");
+if (True) {
+    print(1);
+} else {
+    print(0);
+};
+
+print("expected: 0");
+if (False) {
+    print(1);
+} else {
+    print(0);
+};
+
+
+// ------------------------------------------------------------
+// 18. String literals
+// ------------------------------------------------------------
+print("=== 18. String literals ===");
+print("expected: hello"); print("hello");
+
+mut s = "world";
+print("expected: world"); print(s);
+
+print("expected: hello world"); print("hello" + " " + s);
+print("expected: True");        print("abc" == "abc");
+print("expected: False");       print("abc" == "def");
+
+
+// ------------------------------------------------------------
+// 19. Nested arithmetic
+// ------------------------------------------------------------
+print("=== 19. Nested arithmetic ===");
+print("expected: 20"); print((2 + 3) * 4);
+print("expected: 4");  print(10 - 2 * 3);
+
+
+// ------------------------------------------------------------
+// 20. Early / short-circuit returns
+// ------------------------------------------------------------
+print("=== 20. Early / short-circuit returns ===");
+
+// 20a. Return stops execution — code after return does not run
+mut sideEffect = 0;
+function noSideEffect() {
+    return 1;
+    sideEffect = 42;
+};
+noSideEffect();
+print("expected: 0"); print(sideEffect);
+
+// 20b. Early return from a branch — only the matched branch returns
+function classify(x) {
+    if (x > 0) {
+        return 1;
+    };
+    if (x < 0) {
+        return -1;
+    };
+    return 0;
+};
+print("expected: 1");  print(classify(5));
+print("expected: -1"); print(classify(-3));
+print("expected: 0");  print(classify(0));
+
+// 20c. Return inside a while loop exits the function immediately
+function firstMultipleOf(factor, limit) {
+    mut i = 1;
+    while (i <= limit) {
+        if (i * factor > limit) {
+            return i;
+        };
+        i++;
+    };
+    return -1;
+};
+print("expected: 4"); print(firstMultipleOf(3, 10));
+
+// 20d. Return inside a for loop exits the function immediately
+function sumUntil(threshold) {
+    mut total = 0;
+    for (mut p = 1; p <= 100; p++) {
+        total += p;
+        if (total >= threshold) {
+            return p;
+        };
+    };
+    return -1;
+};
+print("expected: 5"); print(sumUntil(15));
+
+
+// ------------------------------------------------------------
+// 21. const and mut declarations
+// ------------------------------------------------------------
+print("=== 21. const and mut ===");
+
+const PI = 3;
+print("expected: 3"); print(PI);
+
+mut counter2 = 0;
+counter2 = counter2 + 1;
+print("expected: 1"); print(counter2);
+
+// shadowing outer const with local mut
+const LIMIT = 10;
+function testShadow() {
+    mut LIMIT = 99;
+    return LIMIT;
+};
+print("expected: 99"); print(testShadow());
+print("expected: 10"); print(LIMIT);
+
+
+// ------------------------------------------------------------
+// 22. Error handling — must be last (stops execution)
+// ------------------------------------------------------------
+print("=== 22. Undefined variable error ===");
+function makeLocal() {
+    mut localVar = 42;
+};
+makeLocal();
+print("expected: Erreur: variable localVar non definie");
+print(localVar);
