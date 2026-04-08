@@ -129,19 +129,38 @@ import ply.lex as lex
 
 lex.lex()
 
-names = {}
+stack = [{}]   # pile de contextes : stack[0] = global, stack[-1] = contexte courant
 functions = {}
+
+_returning = False   # True quand on a rencontré un return
+_return_value = 0    # valeur du return en cours
+
+
+def lire_variable(nom):
+    for contexte in reversed(stack):
+        if nom in contexte:
+            return contexte[nom]
+    print(f"Erreur: variable '{nom}' non définie")
+    return 0
+
+
+def ecrire_variable(nom, valeur):
+    stack[-1][nom] = valeur
+
+
+def entrer_dans_fonction(parametres: dict):
+    stack.append(parametres)
+
+
+def sortir_de_fonction():
+    stack.pop()
 
 
 def evalExpr(t):
     if type(t) is int:
         return t
     if type(t) is str:
-        if t in names:
-            return names[t]
-        else:
-            print(f"Erreur: variable '{t}' non définie")
-            return 0
+        return lire_variable(t)
     if type(t) is tuple:
         if t[0] == "call":
             func_name = t[1]
@@ -156,11 +175,14 @@ def evalExpr(t):
             body = func[2]
             arg_values = [evalExpr(arg) for arg in args]
 
-            for i in range(len(params)):
-                names[params[i]] = arg_values[i]
-
+            global _returning, _return_value
+            entrer_dans_fonction({params[i]: arg_values[i] for i in range(len(params))})
             evalInst(body)
-            return 0
+            result = _return_value
+            _returning = False
+            _return_value = 0
+            sortir_de_fonction()
+            return result
         if t[0] == "+":
             return evalExpr(t[1]) + evalExpr(t[2])
         if t[0] == "-":
@@ -184,72 +206,37 @@ def evalExpr(t):
         if t[0] == "||":
             return evalExpr(t[1]) or evalExpr(t[2])
         if t[0] == "post_incr":
-            var = t[1]
-            if var in names:
-                old_value = names[var]
-                names[var] += 1
-                return old_value
-            else:
-                print(f"Erreur: variable '{var}' non définie")
-                return 0
+            old_value = lire_variable(t[1])
+            ecrire_variable(t[1], old_value + 1)
+            return old_value
         if t[0] == "post_decr":
-            var = t[1]
-            if var in names:
-                old_value = names[var]
-                names[var] -= 1
-                return old_value
-            else:
-                print(f"Erreur: variable '{var}' non définie")
-                return 0
+            old_value = lire_variable(t[1])
+            ecrire_variable(t[1], old_value - 1)
+            return old_value
         if t[0] == "pre_incr":
-            var = t[1]
-            if var in names:
-                names[var] += 1
-                return names[var]
-            else:
-                print(f"Erreur: variable '{var}' non définie")
-                return 0
+            new_value = lire_variable(t[1]) + 1
+            ecrire_variable(t[1], new_value)
+            return new_value
         if t[0] == "pre_decr":
-            var = t[1]
-            if var in names:
-                names[var] -= 1
-                return names[var]
-            else:
-                print(f"Erreur: variable '{var}' non définie")
-                return 0
+            new_value = lire_variable(t[1]) - 1
+            ecrire_variable(t[1], new_value)
+            return new_value
         if t[0] == "pre_add":
-            var = t[1]
-            if var in names:
-                names[var] += evalExpr(t[2])
-                return names[var]
-            else:
-                print(f"Erreur: variable '{var}' non définie")
-                return 0
+            new_value = lire_variable(t[1]) + evalExpr(t[2])
+            ecrire_variable(t[1], new_value)
+            return new_value
         if t[0] == "pre_sub":
-            var = t[1]
-            if var in names:
-                names[var] -= evalExpr(t[2])
-                return names[var]
-            else:
-                print(f"Erreur: variable '{var}' non définie")
-                return 0
+            new_value = lire_variable(t[1]) - evalExpr(t[2])
+            ecrire_variable(t[1], new_value)
+            return new_value
         if t[0] == "pre_mul":
-            var = t[1]
-            if var in names:
-                names[var] *= evalExpr(t[2])
-                return names[var]
-            else:
-                print(f"Erreur: variable '{var}' non définie")
-                return 0
-
+            new_value = lire_variable(t[1]) * evalExpr(t[2])
+            ecrire_variable(t[1], new_value)
+            return new_value
         if t[0] == "pre_div":
-            var = t[1]
-            if var in names:
-                names[var] /= evalExpr(t[2])
-                return names[var]
-            else:
-                print(f"Erreur: variable '{var}' non définie")
-                return 0
+            new_value = lire_variable(t[1]) / evalExpr(t[2])
+            ecrire_variable(t[1], new_value)
+            return new_value
 
     return 0
 
@@ -268,15 +255,18 @@ def evalInst(t):
             valeur = evalExpr(t[1])
             print(f"{valeur}")
         elif t[0] == "assign":
-            variable = t[1]
-            valeur = evalExpr(t[2])
-            names[variable] = valeur
+            ecrire_variable(t[1], evalExpr(t[2]))
+        elif t[0] == "return":
+            global _returning, _return_value
+            _return_value = evalExpr(t[1]) if len(t) > 1 else 0
+            _returning = True
         elif t[0] == "expr":
             valeur = evalExpr(t[1])
             # print(f"{valeur}")
         elif t[0] == "bloc":
             evalInst(t[1])
-            evalInst(t[2])
+            if not _returning:
+                evalInst(t[2])
         elif t[0] == "if":
             condition = evalExpr(t[1])
             if_body = t[2]
@@ -302,6 +292,8 @@ def evalInst(t):
             body = t[2]
             while evalExpr(condition):
                 evalInst(body)
+                if _returning:
+                    break
         elif t[0] == "for":
             evalInst(t[1])
             condition = t[2]
@@ -309,12 +301,14 @@ def evalInst(t):
             body = t[4]
             while evalExpr(condition):
                 evalInst(body)
+                if _returning:
+                    break
                 evalExpr(expr)
         elif t[0] == "do_while":
             condition = t[2]
             body = t[1]
             evalInst(body)
-            while evalExpr(condition):
+            while not _returning and evalExpr(condition):
                 evalInst(body)
     elif t == "empty":
         pass
@@ -354,12 +348,6 @@ def p_statement_func_def(p):
     p[0] = ("func_def", func_name, params, body)
 
 
-def p_statement_func_call(p):
-    """statement : VAR LPAREN arg_list RPAREN
-    |              VAR LPAREN RPAREN"""
-    func_name = p[1]
-    args = p[3] if len(p) == 5 else []
-    p[0] = ("call_stmt", ("call", func_name, args))
 
 
 def p_statement_return(p):
@@ -541,6 +529,14 @@ def p_expression_incr(p):
         p[0] = ("pre_incr", p[2])
     elif p[1] == "--":
         p[0] = ("pre_decr", p[2])
+
+
+def p_expression_func_call(p):
+    """expression : VAR LPAREN arg_list RPAREN
+    |               VAR LPAREN RPAREN"""
+    func_name = p[1]
+    args = p[3] if len(p) == 5 else []
+    p[0] = ("call", func_name, args)
 
 
 def p_expression_group(p):
