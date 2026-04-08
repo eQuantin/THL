@@ -226,7 +226,7 @@ def evalExpr(t):
             divisor = evalExpr(t[2])
             if divisor == 0:
                 raise THLRuntimeError("Erreur: division par 0")
-            return evalExpr(t[1]) // divisor  # always return an integer
+            return evalExpr(t[1]) / divisor
         if t[0] == "<":
             return evalExpr(t[1]) < evalExpr(t[2])
         if t[0] == "<=":
@@ -273,7 +273,7 @@ def evalExpr(t):
             divisor = evalExpr(t[2])
             if divisor == 0:
                 raise THLRuntimeError("Erreur: division par 0")
-            new_value = lire_variable(t[1]) // divisor  # always return an integer
+            new_value = lire_variable(t[1]) / divisor
             ecrire_variable(t[1], new_value)
             return new_value
 
