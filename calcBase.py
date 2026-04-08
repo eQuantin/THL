@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
-import genereTreeGraphviz2 as printTreeGraph
+
+class THLRuntimeError(Exception):
+    pass
+
 
 reserved = {
     "if": "IF",
@@ -12,8 +15,10 @@ reserved = {
     "function": "FUNCTION",
     "print": "PRINT",
     "return": "RETURN",
-    # "mut": "MUT",
-    # "const": "CONST",
+    "mut": "MUT",
+    "const": "CONST",
+    "True": "TRUE",
+    "False": "FALSE",
 }
 
 tokens = [
@@ -45,6 +50,7 @@ tokens = [
     "MINUSEGAL",
     "TIMESEGAL",
     "DIVEGAL",
+    "STRING",
 ] + list(reserved.values())
 
 precedence = (
@@ -66,6 +72,7 @@ precedence = (
     ),
     ("left", "PLUS", "MINUS"),
     ("left", "TIMES", "DIVIDE"),
+    ("right", "UMINUS"),
 )
 
 t_PLUS = r"\+"
@@ -81,7 +88,9 @@ t_LCBRACKET = r"\{"
 t_RCBRACKET = r"\}"
 t_SEMI = r"\;"
 t_COMMA = r"\,"
-# t_DQUOTE = r"\""
+
+t_TRUE = r"True"
+t_FALSE = r"False"
 
 t_OR = r"\|\|"
 t_AND = r"\&\&"
@@ -114,6 +123,12 @@ def t_NUMBER(t):
     return t
 
 
+def t_STRING(t):
+    r'"[^"]*"'
+    t.value = t.value[1:-1]
+    return t
+
+
 t_ignore = " \t"
 
 
@@ -128,31 +143,37 @@ def t_error(t):
 
 
 def t_comment(t):
-    r"(\/\/.*\n+)|(\/*(\*.*\n+)*\*\/)"
-    pass
+    r"(\/\/[^\n]*)|(\/\*[\s\S]*?\*\/)"
+    t.lexer.lineno += t.value.count("\n")
 
 
 import ply.lex as lex
 
 lex.lex()
 
-stack = [{}]   # pile de contextes : stack[0] = global, stack[-1] = contexte courant
+stack = [{}]  # pile de contextes : stack[0] = global, stack[-1] = contexte courant
 functions = {}
 
-_returning = False   # True quand on a rencontré un return
-_return_value = 0    # valeur du return en cours
+_returning = False  # True quand on a rencontré un return
+_return_value = 0  # valeur du return en cours
 
 
-def lire_variable(nom):
+def lire_variable(nom) -> int | bool | str:
     for contexte in reversed(stack):
         if nom in contexte:
-            return contexte[nom]
-    print(f"Erreur: variable '{nom}' non définie")
-    return 0
+            v = contexte[nom]
+            return v[1] if isinstance(v, tuple) and v[0] == "__const__" else v
+    raise THLRuntimeError(f"variable '{nom}' non définie")
 
 
 def ecrire_variable(nom, valeur):
-    stack[-1][nom] = valeur
+    for contexte in reversed(stack):
+        if nom in contexte:
+            if isinstance(contexte[nom], tuple) and contexte[nom][0] == "__const__":
+                raise THLRuntimeError(f"impossible de réassigner la constante '{nom}'")
+            contexte[nom] = valeur
+            return
+    raise THLRuntimeError(f"variable '{nom}' non déclarée")
 
 
 def entrer_dans_fonction(parametres: dict):
@@ -164,6 +185,8 @@ def sortir_de_fonction():
 
 
 def evalExpr(t):
+    if type(t) is bool:
+        return t
     if type(t) is int:
         return t
     if type(t) is str:
@@ -174,8 +197,7 @@ def evalExpr(t):
             args = t[2] if len(t) > 2 else []
 
             if func_name not in functions:
-                print(f"Erreur: fonction '{func_name}' non définie")
-                return 0
+                raise THLRuntimeError(f"Erreur: fonction '{func_name}' non définie")
 
             func = functions[func_name]
             params = func[1]
@@ -190,6 +212,10 @@ def evalExpr(t):
             _return_value = 0
             sortir_de_fonction()
             return result
+        if t[0] == "str_lit":
+            return t[1]
+        if t[0] == "neg":
+            return -evalExpr(t[1])
         if t[0] == "+":
             return evalExpr(t[1]) + evalExpr(t[2])
         if t[0] == "-":
@@ -197,7 +223,10 @@ def evalExpr(t):
         if t[0] == "*":
             return evalExpr(t[1]) * evalExpr(t[2])
         if t[0] == "/":
-            return evalExpr(t[1]) / evalExpr(t[2])
+            divisor = evalExpr(t[2])
+            if divisor == 0:
+                raise THLRuntimeError("Erreur: division par 0")
+            return evalExpr(t[1]) // divisor  # always return an integer
         if t[0] == "<":
             return evalExpr(t[1]) < evalExpr(t[2])
         if t[0] == "<=":
@@ -209,9 +238,9 @@ def evalExpr(t):
         if t[0] == "==":
             return evalExpr(t[1]) == evalExpr(t[2])
         if t[0] == "&&":
-            return evalExpr(t[1]) and evalExpr(t[2])
+            return True if evalExpr(t[1]) and evalExpr(t[2]) else False
         if t[0] == "||":
-            return evalExpr(t[1]) or evalExpr(t[2])
+            return True if evalExpr(t[1]) or evalExpr(t[2]) else False
         if t[0] == "post_incr":
             old_value = lire_variable(t[1])
             ecrire_variable(t[1], old_value + 1)
@@ -241,7 +270,10 @@ def evalExpr(t):
             ecrire_variable(t[1], new_value)
             return new_value
         if t[0] == "pre_div":
-            new_value = lire_variable(t[1]) / evalExpr(t[2])
+            divisor = evalExpr(t[2])
+            if divisor == 0:
+                raise THLRuntimeError("Erreur: division par 0")
+            new_value = lire_variable(t[1]) // divisor  # always return an integer
             ecrire_variable(t[1], new_value)
             return new_value
 
@@ -261,6 +293,14 @@ def evalInst(t):
         elif t[0] == "print":
             valeur = evalExpr(t[1])
             print(f"{valeur}")
+        elif t[0] == "declare":
+            nom, valeur = t[2], evalExpr(t[3])
+            if nom in stack[-1]:
+                raise THLRuntimeError(f"variable '{nom}' déjà déclarée dans ce scope")
+            if t[1] == "const":
+                stack[-1][nom] = ("__const__", valeur)
+            else:
+                stack[-1][nom] = valeur
         elif t[0] == "assign":
             ecrire_variable(t[1], evalExpr(t[2]))
         elif t[0] == "return":
@@ -324,6 +364,8 @@ def evalInst(t):
 def p_start(p):
     "start : bloc"
     p[0] = p[1]
+    print(p[0])
+    evalInst(p[0])
 
 
 def p_bloc(p):
@@ -355,8 +397,6 @@ def p_statement_func_def(p):
     p[0] = ("func_def", func_name, params, body)
 
 
-
-
 def p_statement_return(p):
     """statement : RETURN expression
     |              RETURN"""
@@ -364,6 +404,17 @@ def p_statement_return(p):
         p[0] = ("return", p[2])
     else:
         p[0] = ("return",)
+
+
+def p_statement_declare(p):
+    """statement : declare"""
+    p[0] = p[1]
+
+
+def p_declare(p):
+    """declare : MUT VAR EGAL expression
+    |            CONST VAR EGAL expression"""
+    p[0] = ("declare", p[1], p[2], p[4])
 
 
 def p_statement_assign(p):
@@ -403,7 +454,8 @@ def p_statement_while(p):
 
 
 def p_statement_for(p):
-    """statement : FOR LPAREN assign SEMI expression SEMI expression  RPAREN LCBRACKET bloc RCBRACKET"""
+    """statement : FOR LPAREN assign SEMI expression SEMI expression RPAREN LCBRACKET bloc RCBRACKET
+    |              FOR LPAREN declare SEMI expression SEMI expression RPAREN LCBRACKET bloc RCBRACKET"""
     p[0] = ("for", p[3], p[5], p[7], p[10])
 
 
@@ -455,6 +507,16 @@ def p_conditional_elif(p):
 def p_conditional_else(p):
     """else : ELSE LCBRACKET bloc RCBRACKET"""
     p[0] = ("else", p[3])
+
+
+def p_expression_string(p):
+    """expression : STRING"""
+    p[0] = ("str_lit", p[1])
+
+
+def p_expression_uminus(p):
+    """expression : MINUS expression %prec UMINUS"""
+    p[0] = ("neg", p[2])
 
 
 def p_expression_binop(p):
@@ -551,6 +613,15 @@ def p_expression_group(p):
     p[0] = p[2]
 
 
+def p_expression_bool(p):
+    """expression : TRUE
+    |              FALSE"""
+    if p[1] == "True":
+        p[0] = True
+    if p[1] == "False":
+        p[0] = False
+
+
 def p_expression_number(p):
     "expression : NUMBER"
     p[0] = p[1]
@@ -562,40 +633,29 @@ def p_expression_var(p):
 
 
 def p_error(p):
-    print("Syntax error in input!")
+    if p:
+        raise THLRuntimeError(
+            f"erreur de syntaxe ligne {p.lineno}: token inattendu '{p.value}'"
+        )
+    else:
+        raise THLRuntimeError("erreur de syntaxe: fin de fichier inattendue")
 
-
-import sys
 
 import ply.yacc as yacc
 
 yacc.yacc()
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:  # mode file
-        filename = sys.argv[1]
+    while True:
         try:
-            with open(filename, "r") as f:
-                content = f.read()
-                result = yacc.parse(content)
-                if result:
-                    printTreeGraph.printTreeGraph(result)
-                    evalInst(result)
-        except FileNotFoundError:
-            print(f"Error: File '{filename}' not found")
-        except Exception as e:
-            print(f"Error reading file: {e}")
-    else:  # mode terminal
-        while True:
-            try:
-                prompt = ">> "
-                s = input(prompt)
-                result = yacc.parse(s)
-                if result:
-                    evalInst(result)
-            except EOFError:
-                break
-            except KeyboardInterrupt:
-                break
-            except SyntaxError:
-                pass
+            prompt = "calc > "
+            s = input(prompt)
+            yacc.parse(s)
+        except THLRuntimeError as e:
+            print(f"Erreur: {e}")
+        except EOFError:
+            break
+        except KeyboardInterrupt:
+            break
+        except SyntaxError:
+            pass
